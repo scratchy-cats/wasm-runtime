@@ -2,8 +2,8 @@ use std::{fs::File, io::{self, BufReader, Cursor}};
 use anyhow::{anyhow, Result};
 use num_traits::FromPrimitive;
 use tracing::{debug, instrument};
-use crate::{module::{sections::{SectionId, TypeSection}, types::FunctionSignature}, utils::getHexStringForBuffer};
-use super::{types::{ResultType, ValueType}, BinaryVersion, Module};
+use crate::{module::{indices::TypeIndex, sections::{SectionId, TypeSection}, types::FunctionSignature}, utils::getHexStringForBuffer};
+use super::{sections::FunctionSection, types::{ResultType, ValueType}, BinaryVersion, Module};
 
 const MAGIC_STRING: &str= "\0asm";
 const FUNCTION_SIGNATURE_STARTING_MARKER: u8= 0x60;
@@ -51,6 +51,7 @@ impl ModuleReader<BufReader<File>> {
       if sectionId.is_none( ) {
         return Err(anyhow!("invalid section-id : {}", sectionIdAsU8))}
       let sectionId= sectionId.unwrap( );
+
       debug!("reading section : {}", sectionId);
       self.readSection(&mut module, sectionId)?;
       debug!("finished reading section");
@@ -88,7 +89,10 @@ impl ModuleReader<BufReader<File>> {
     debug!("reading content");
     match sectionId {
       SectionId::Type =>
-        module.typeSection= Some(sectionContentReader.readTypeSectionContent( )?)
+        module.typeSection= Some(sectionContentReader.readTypeSectionContent( )?),
+
+      SectionId::Function =>
+        module.functionSection= Some(sectionContentReader.readFunctionSectionContent( )?)
     };
     debug!("finished reading content");
 
@@ -102,12 +106,13 @@ impl ModuleReader<Cursor<Vec<u8>>> {
     ModuleReader(Cursor::new(buffer))
   }
 
+  // All function types used in a module are defined in the type section.
   fn readTypeSectionContent(&mut self) -> Result<TypeSection> {
-    let functionSignaturesCount= self.readU32( )? as usize;
-    debug!("function signatures count : {}", functionSignaturesCount);
+    let functionSignatureCount= self.readU32( )? as usize;
+    debug!("function signatures count : {}", functionSignatureCount);
 
     let mut typeSection= TypeSection {
-      functionSignatures: Vec::new( )
+      functionSignatures: Vec::with_capacity(functionSignatureCount)
     };
 
     loop {
@@ -134,8 +139,47 @@ impl ModuleReader<Cursor<Vec<u8>>> {
         inputs, outputs
       });
     }
-
     Ok(typeSection)
+  }
+
+  // All functions are defined in the function section.
+  /*
+    The  of a function declares its signature by reference to a type defined in the module. The
+    parameters of the function are referenced through 0-based local indices in the function’s body.
+    The parameters are mutable.
+
+    The locals declare a vector of mutable local variables and their types. These variables are
+    referenced through local indices in the function’s body. The index of the first local is the
+    smallest index not referencing a parameter.
+
+    The body is an instruction sequence that upon termination must produce a stack matching the
+    function type’s result type.
+
+    Functions are referenced through function indices, starting with the smallest index not
+    referencing a function import.
+  */
+  fn readFunctionSectionContent(&mut self) -> Result<FunctionSection> {
+    let functionCount= self.readU32( )? as usize;
+    debug!("function count : {}", functionCount);
+
+    let mut functionSection= FunctionSection {
+      functions: Vec::with_capacity(functionCount)
+    };
+
+    loop {
+      let result= self.readU32( );
+      if result.as_ref( )
+        .is_err_and(|error| error.to_string( ) == "failed to fill whole buffer") { break }
+
+      debug!("reading function");
+
+      let functionIndex= result.unwrap( );
+      debug!("function index : {}", functionIndex);
+
+      debug!("finished reading function");
+      functionSection.functions.push(TypeIndex::Function(functionIndex));
+    }
+    Ok(functionSection)
   }
 }
 

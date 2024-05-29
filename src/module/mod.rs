@@ -2,10 +2,11 @@ use std::{fs::File, path::Path};
 use anyhow::Result;
 use num_derive::FromPrimitive;
 use reader::ModuleReader;
-use sections::TypeSection;
+use sections::{FunctionSection, TypeSection};
 use tracing::{info, instrument};
 
 mod types;
+mod indices;
 mod sections;
 mod reader;
 
@@ -16,14 +17,16 @@ pub enum BinaryVersion {
   One = 1
 }
 
-// The distributable, loadable, and executable unit of code in WebAssembly is called a module. A
-// module collects definitions for types, functions, tables, memories, and globals. In addition, it
-// can declare imports and exports and provide initialization.
+// WASM programs are organized into modules, which are the unit of deployment, loading, and
+// compilation. A module collects definitions for types, functions, tables, memories, and globals.
+// In addition, it can declare imports and exports and provide initialization in the form of data
+// and element segments, or a start function.
 #[derive(Default)]
 pub struct Module {
   binaryVersion: BinaryVersion,
 
-  typeSection: Option<TypeSection>
+  typeSection:      Option<TypeSection>,
+  functionSection:  Option<FunctionSection>
 }
 
 impl Module {
