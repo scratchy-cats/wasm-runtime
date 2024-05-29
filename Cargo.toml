@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.86"
+enum-display = "0.1.4"
 leb128 = "0.2.5"
 num-derive = "0.4.2"
 num-traits = "0.2.19"
 tracing = "0.1.40"
+tracing-subscriber = "0.3.18"

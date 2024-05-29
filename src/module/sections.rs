@@ -1,7 +1,8 @@
+use enum_display::EnumDisplay;
 use num_derive::FromPrimitive;
 use super::types::FunctionSignature;
 
-#[derive(FromPrimitive)]
+#[derive(FromPrimitive, EnumDisplay, Debug)]
 pub enum SectionId {
   Type = 0x01
 }

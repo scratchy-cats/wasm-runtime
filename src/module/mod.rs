@@ -3,6 +3,7 @@ use anyhow::Result;
 use num_derive::FromPrimitive;
 use reader::ModuleReader;
 use sections::TypeSection;
+use tracing::{info, instrument};
 
 mod types;
 mod sections;
@@ -28,10 +29,12 @@ pub struct Module {
 impl Module {
   // Constructs an instance of the Module struct by (buffered) reading the given WASM module. The
   // instance is then returned.
+  #[instrument(skip(path), fields(module_path = path))]
   pub fn new(path: &str) -> Result<Self> {
     let file = File::open(Path::new(path))?;
 
     let mut moduleReader= ModuleReader::new(file);
+    info!("reading WASM module at path {}", path);
     moduleReader.read( )
   }
 }

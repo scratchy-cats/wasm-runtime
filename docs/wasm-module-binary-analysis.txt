@@ -1,0 +1,17 @@
+0061736d - Magic String
+01000000 - WASM Binary Verson
+
+01 - Type Section
+07 - Section content byte-size
+01 - Function signatures count
+
+  60 - Function Signature starting marker
+
+    02 - Input count.
+      7f - Number type.
+      7f - Number type.
+
+    01 - Output count.
+      7f - Number type.
+
+030201000a09010700200020016a0b
