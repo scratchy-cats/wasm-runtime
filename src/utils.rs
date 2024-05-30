@@ -4,16 +4,17 @@ use std::{fs::File, io::Read, path::Path};
 // NOTE : Used for quick debugging purposes.
 #[allow(unused)]
 pub fn dumpModuleAsHexString(path: &str) {
-  let mut file = File::open(Path::new(path)).unwrap( );
+  let mut file = File::open(Path::new(path)).unwrap();
 
-  let mut buffer = Vec::new( );
-  file.read_to_end(&mut buffer).unwrap( );
+  let mut buffer = Vec::new();
+  file.read_to_end(&mut buffer).unwrap();
 
-  println!("WASM module contents as hexadecimal string : {}", getHexStringForBuffer(&buffer));
+  println!(
+    "WASM module contents as hexadecimal string : {}",
+    getHexStringForBuffer(&buffer)
+  );
 }
 
 pub fn getHexStringForBuffer(buffer: &Vec<u8>) -> String {
-  return buffer.iter( )
-    .map(|byte| format!("{:02x}", byte))
-    .collect( );
+  return buffer.iter().map(|byte| format!("{:02x}", byte)).collect();
 }

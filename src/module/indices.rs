@@ -18,5 +18,5 @@
 */
 
 pub enum TypeIndex {
-  Function(u32)
+  Function(u32),
 }

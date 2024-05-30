@@ -3,15 +3,15 @@
 use logging::setupLogging;
 use module::Module;
 
-mod module;
 mod logging;
+mod module;
 mod utils;
 
-fn main( ) {
-  setupLogging( );
+fn main() {
+  setupLogging();
 
-  let modulePath= "./test/test.wasm";
+  let modulePath = "./test/test.wasm";
   // dumpModuleAsHexString(modulePath);
 
-  let _= Module::new(&modulePath).unwrap( );
+  let _ = Module::new(&modulePath).unwrap();
 }

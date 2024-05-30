@@ -15,12 +15,13 @@ use std::{
   io::{self, BufReader, Cursor},
 };
 
-const MAGIC_STRING: &str= "\0asm";
-const FUNCTION_SIGNATURE_STARTING_MARKER: u8= 0x60;
+const MAGIC_STRING: &str = "\0asm";
+const FUNCTION_SIGNATURE_STARTING_MARKER: u8 = 0x60;
 
 #[derive(Debug)]
 pub struct BinaryReader<R>(R)
-  where R: io::Read;
+where
+  R: io::Read;
 
 impl BinaryReader<BufReader<File>> {
   pub fn new(file: File) -> Self {
@@ -31,14 +32,14 @@ impl BinaryReader<BufReader<File>> {
   // Constructs an instance of the Module struct by (buffered) reading the given WASM module.
   // The instance is then returned.
   pub(super) fn read(&mut self) -> Result<Module> {
-    let mut module= Module::default( );
+    let mut module = Module::default();
 
     /*
       The encoding of a module starts with a preamble containing :
         (1) a 4-byte magic string (\0asm).
         (2) a version field. The current version of the WASM binary format is 1.
     */
-    module.binaryVersion= self.readPreamble( )?;
+    module.binaryVersion = self.readPreamble()?;
 
     /*
       The preamble is followed by a sequence of sections. Every section is optional - an omitted
@@ -50,15 +51,16 @@ impl BinaryReader<BufReader<File>> {
         (3) the actual contents, whose structure is dependent on the section id.
     */
     loop {
-      let byte= self.readByte( )?;
+      let byte = self.readByte()?;
       if byte == 0 {
-        break
+        break;
       }
 
-      let sectionId= SectionId::from_u8(byte);
-      if sectionId.is_none( ) {
-        return Err(anyhow!("invalid section-id : {}", byte))}
-      let sectionId= sectionId.unwrap( );
+      let sectionId = SectionId::from_u8(byte);
+      if sectionId.is_none() {
+        return Err(anyhow!("invalid section-id : {}", byte));
+      }
+      let sectionId = sectionId.unwrap();
 
       self.readSection(&mut module, sectionId)?;
     }
@@ -68,37 +70,35 @@ impl BinaryReader<BufReader<File>> {
 
   // Reads the preamble and validates the WASM binary version. Returns the WASM binary version.
   fn readPreamble(&mut self) -> Result<BinaryVersion> {
-    let magicString= self.readString(4)?;
+    let magicString = self.readString(4)?;
     if magicString != MAGIC_STRING {
-      return Err(anyhow!("Magic string not found"))}
+      return Err(anyhow!("Magic string not found"));
+    }
 
-    let binaryVersionAsU32= u32::from_le_bytes(
-      self.readBytes(4)?.as_slice( ).try_into( )?
-    );
-    if let Some(binaryVersion)= BinaryVersion::from_u32(binaryVersionAsU32) {
-      return Ok(binaryVersion)
+    let binaryVersionAsU32 = u32::from_le_bytes(self.readBytes(4)?.as_slice().try_into()?);
+    if let Some(binaryVersion) = BinaryVersion::from_u32(binaryVersionAsU32) {
+      return Ok(binaryVersion);
     }
     Err(anyhow!("wrong WASM binary version"))
   }
 
-  fn readSection(&mut self, module: &mut Module, sectionId: SectionId) -> Result<( )> {
-    let sectionContentSize= self.readU32( )?;
+  fn readSection(&mut self, module: &mut Module, sectionId: SectionId) -> Result<()> {
+    let sectionContentSize = self.readU32()?;
 
-    let sectionContent= self.readBytes(sectionContentSize as usize)?;
-    let mut sectionContentReader= BinaryReader::<Cursor<Vec<u8>>>::new(sectionContent);
+    let sectionContent = self.readBytes(sectionContentSize as usize)?;
+    let mut sectionContentReader = BinaryReader::<Cursor<Vec<u8>>>::new(sectionContent);
 
     match sectionId {
-      SectionId::Type =>
-        module.typeSection= Some(sectionContentReader.readTypeSectionContent( )?),
+      SectionId::Type => module.typeSection = Some(sectionContentReader.readTypeSectionContent()?),
 
-      SectionId::Function =>
-        module.functionSection= Some(sectionContentReader.readFunctionSectionContent( )?),
+      SectionId::Function => {
+        module.functionSection = Some(sectionContentReader.readFunctionSectionContent()?)
+      }
 
-      SectionId::Code =>
-        module.codeSection= Some(sectionContentReader.readCodeSectionContent( )?)
+      SectionId::Code => module.codeSection = Some(sectionContentReader.readCodeSectionContent()?),
     };
 
-    Ok(( ))
+    Ok(())
   }
 }
 
@@ -110,29 +110,35 @@ impl BinaryReader<Cursor<Vec<u8>>> {
 
   // All function types used in a module are defined in the type section.
   fn readTypeSectionContent(&mut self) -> Result<TypeSection> {
-    let functionSignatureCount= self.readU32( )? as usize;
+    let functionSignatureCount = self.readU32()? as usize;
 
-    let mut typeSection= TypeSection {
-      functionSignatures: Vec::with_capacity(functionSignatureCount)
+    let mut typeSection = TypeSection {
+      functionSignatures: Vec::with_capacity(functionSignatureCount),
     };
 
     loop {
-      let byte= self.readByte( )?;
-      if byte == 0 { break }
+      let byte = self.readByte()?;
+      if byte == 0 {
+        break;
+      }
 
-      let functionSignatureStartingMarker= byte;
+      let functionSignatureStartingMarker = byte;
       if functionSignatureStartingMarker != FUNCTION_SIGNATURE_STARTING_MARKER {
-        return Err(anyhow!("expected function signature starting marker, but found : {}", byte))}
+        return Err(anyhow!(
+          "expected function signature starting marker, but found : {}",
+          byte
+        ));
+      }
 
-      let inputCount= self.readU32( )?;
-      let inputs= self.readResultType(inputCount)?;
+      let inputCount = self.readU32()?;
+      let inputs = self.readResultType(inputCount)?;
 
-      let outputCount= self.readU32( )?;
-      let outputs= self.readResultType(outputCount)?;
+      let outputCount = self.readU32()?;
+      let outputs = self.readResultType(outputCount)?;
 
-      typeSection.functionSignatures.push(FunctionSignature {
-        inputs, outputs
-      });
+      typeSection
+        .functionSignatures
+        .push(FunctionSignature { inputs, outputs });
     }
 
     Ok(typeSection)
@@ -155,19 +161,25 @@ impl BinaryReader<Cursor<Vec<u8>>> {
     referencing a function import.
   */
   fn readFunctionSectionContent(&mut self) -> Result<FunctionSection> {
-    let functionCount= self.readU32( )? as usize;
+    let functionCount = self.readU32()? as usize;
 
-    let mut functionSection= FunctionSection {
-      functions: Vec::with_capacity(functionCount)
+    let mut functionSection = FunctionSection {
+      functions: Vec::with_capacity(functionCount),
     };
 
     loop {
-      let result= self.readU32( );
-      if result.as_ref( )
-        .is_err_and(|error| error.to_string( ) == "failed to fill whole buffer") { break }
+      let result = self.readU32();
+      if result
+        .as_ref()
+        .is_err_and(|error| error.to_string() == "failed to fill whole buffer")
+      {
+        break;
+      }
 
-      let functionIndex= result.unwrap( );
-      functionSection.functions.push(TypeIndex::Function(functionIndex));
+      let functionIndex = result.unwrap();
+      functionSection
+        .functions
+        .push(TypeIndex::Function(functionIndex));
     }
 
     Ok(functionSection)
@@ -189,50 +201,57 @@ impl BinaryReader<Cursor<Vec<u8>>> {
           sequence terminated with an explicit OxOB opcode for end.
   */
   fn readCodeSectionContent(&mut self) -> Result<CodeSection> {
-    let functionBodyCount= self.readU32( )? as usize;
+    let functionBodyCount = self.readU32()? as usize;
 
-    let mut codeSection= CodeSection {
-      functionBodies: Vec::with_capacity(functionBodyCount)
+    let mut codeSection = CodeSection {
+      functionBodies: Vec::with_capacity(functionBodyCount),
     };
 
     loop {
-      let result= self.readU32( );
-      if result.as_ref( )
-        .is_err_and(|error| error.to_string( ) == "failed to fill whole buffer") { break }
+      let result = self.readU32();
+      if result
+        .as_ref()
+        .is_err_and(|error| error.to_string() == "failed to fill whole buffer")
+      {
+        break;
+      }
 
-      let functionBodySize= result.unwrap( );
+      let functionBodySize = result.unwrap();
 
-      let functionBody= self.readBytes(functionBodySize as usize)?;
-      let mut functionBodyReader= BinaryReader::<Cursor<Vec<u8>>>::new(functionBody);
+      let functionBody = self.readBytes(functionBodySize as usize)?;
+      let mut functionBodyReader = BinaryReader::<Cursor<Vec<u8>>>::new(functionBody);
 
-      let localsCount= functionBodyReader.readU32( )?;
-      let locals= functionBodyReader.readResultType(localsCount)?;
+      let localsCount = functionBodyReader.readU32()?;
+      let locals = functionBodyReader.readResultType(localsCount)?;
 
-      let mut instructions= Vec::new( );
+      let mut instructions = Vec::new();
       loop {
-        let byte= functionBodyReader.readByte( )?;
+        let byte = functionBodyReader.readByte()?;
         // TODO : Verify that a function body ends with the END instruction.
-        if byte == 0 { break }
+        if byte == 0 {
+          break;
+        }
 
-        let opcode= Opcode::from_u8(byte);
-        if opcode.is_none( ) {
-          return Err(anyhow!("Invalid opcode : {}", byte))}
+        let opcode = Opcode::from_u8(byte);
+        if opcode.is_none() {
+          return Err(anyhow!("Invalid opcode : {}", byte));
+        }
 
-        let instruction= match opcode.unwrap( ) {
+        let instruction = match opcode.unwrap() {
           // Variable instructions.
-          Opcode::LocalGet => Instruction::LocalGet(functionBodyReader.readU32( )?),
+          Opcode::LocalGet => Instruction::LocalGet(functionBodyReader.readU32()?),
 
           // Numeric instructions.
           Opcode::I32Add => Instruction::I32Add,
 
-          Opcode::End => Instruction::End
+          Opcode::End => Instruction::End,
         };
         instructions.push(instruction);
       }
 
       codeSection.functionBodies.push(FunctionBody {
         locals,
-        body : Expression { instructions }
+        body: Expression { instructions },
       });
     }
 
@@ -242,26 +261,29 @@ impl BinaryReader<Cursor<Vec<u8>>> {
 
 // Reading types.
 impl<R> BinaryReader<R>
-  where R: io::Read
+where
+  R: io::Read,
 {
   fn readResultType(&mut self, elementCount: u32) -> Result<ResultType> {
-    let mut resultType= ResultType::default( );
+    let mut resultType = ResultType::default();
     for _ in 0..elementCount {
-      resultType.valueTypes.push(self.readValueType( )?);}
+      resultType.valueTypes.push(self.readValueType()?);
+    }
     Ok(resultType)
   }
 
   fn readValueType(&mut self) -> Result<ValueType> {
-    ValueType::try_from(self.readByte( )?)
+    ValueType::try_from(self.readByte()?)
   }
 }
 
 // Utilities.
 impl<R> BinaryReader<R>
-  where R: io::Read
+where
+  R: io::Read,
 {
   fn readBytes(&mut self, byteCount: usize) -> Result<Vec<u8>> {
-    let mut buffer= vec![0u8; byteCount];
+    let mut buffer = vec![0u8; byteCount];
 
     self.0.read(&mut buffer)?;
 
@@ -269,16 +291,15 @@ impl<R> BinaryReader<R>
   }
 
   fn readByte(&mut self) -> Result<u8> {
-    Ok(self.readBytes(1)?[0])}
+    Ok(self.readBytes(1)?[0])
+  }
 
   fn readString(&mut self, len: usize) -> Result<String> {
-    Ok(String::from_utf8_lossy(
-      self.readBytes(len)?.as_slice( )
-    ).to_string( ))
+    Ok(String::from_utf8_lossy(self.readBytes(len)?.as_slice()).to_string())
   }
 
   fn readU32(&mut self) -> Result<u32> {
-    let number= leb128::read::unsigned(&mut self.0)?;
+    let number = leb128::read::unsigned(&mut self.0)?;
     Ok(u32::try_from(number)?)
   }
 }

@@ -1,20 +1,19 @@
-use std::{fs::File, path::Path};
 use anyhow::Result;
 use num_derive::FromPrimitive;
 use reader::BinaryReader;
 use sections::{CodeSection, FunctionSection, TypeSection};
+use std::{fs::File, path::Path};
 use tracing::{info, instrument};
 
-mod types;
 mod indices;
-mod sections;
 mod reader;
+mod sections;
+mod types;
 
 #[derive(Default, FromPrimitive)]
 pub enum BinaryVersion {
-
   #[default]
-  One = 1
+  One = 1,
 }
 
 // WASM programs are organized into modules, which are the unit of deployment, loading, and
@@ -25,9 +24,9 @@ pub enum BinaryVersion {
 pub struct Module {
   binaryVersion: BinaryVersion,
 
-  typeSection:      Option<TypeSection>,
-  functionSection:  Option<FunctionSection>,
-  codeSection:      Option<CodeSection>
+  typeSection: Option<TypeSection>,
+  functionSection: Option<FunctionSection>,
+  codeSection: Option<CodeSection>,
 }
 
 impl Module {
@@ -37,8 +36,8 @@ impl Module {
   pub fn new(path: &str) -> Result<Self> {
     let file = File::open(Path::new(path))?;
 
-    let mut moduleReader= BinaryReader::new(file);
+    let mut moduleReader = BinaryReader::new(file);
     info!("reading WASM module at path {}", path);
-    moduleReader.read( )
+    moduleReader.read()
   }
 }
