@@ -19,5 +19,22 @@
 01 - Function count
 
   00 - Function signature reference
-  
-0a09010700200020016a0b
+
+0a - Code section
+09 - Section content byte-size
+01 - Function body count
+
+  07 - Function code byte-size
+  The actual function code as an expression :
+
+    00 - Local variable count
+
+    20 - local.get (variable) instruction
+      00 - (referencing first input)
+
+    20 - local.get (variable) instruction
+      01 - (referencing second input)
+    
+    6a - i32.add (numeric) instruction
+
+    0b - end instruction
