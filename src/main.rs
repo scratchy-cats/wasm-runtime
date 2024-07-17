@@ -2,6 +2,7 @@
 
 use logging::setupLogging;
 use module::Module;
+use utils::dumpModuleAsHexString;
 
 mod logging;
 mod module;
@@ -11,7 +12,7 @@ fn main() {
   setupLogging();
 
   let modulePath = "./test/test.wasm";
-  // dumpModuleAsHexString(modulePath);
+  dumpModuleAsHexString(modulePath);
 
-  let _ = Module::new(&modulePath).unwrap();
+  // let _ = Module::new(&modulePath).unwrap();
 }

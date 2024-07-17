@@ -45,6 +45,7 @@ pub struct FunctionBody {
 // followed by the instruction’s immediate arguments, where present.
 // The only exceptions are structured control instructions, which consist of several opcodes
 // bracketing their nested instruction sequences.
+#[derive(PartialEq)]
 pub enum Instruction {
   // Variable instructions.
   LocalGet(u32),

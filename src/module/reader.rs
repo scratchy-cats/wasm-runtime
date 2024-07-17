@@ -95,6 +95,8 @@ impl BinaryReader<BufReader<File>> {
         module.functionSection = Some(sectionContentReader.readFunctionSectionContent()?)
       }
 
+      SectionId::Start => unimplemented!(),
+
       SectionId::Code => module.codeSection = Some(sectionContentReader.readCodeSectionContent()?),
     };
 
@@ -185,6 +187,8 @@ impl BinaryReader<Cursor<Vec<u8>>> {
     Ok(functionSection)
   }
 
+  fn readStartSectionContext(&mut self) -> Result<StartSection> {}
+
   // The code section contains a vector of code entries - that are pairs of value type vectors and
   // expressions. They represent the locals and body field of the functions in the function section
   // of the module.
@@ -227,8 +231,14 @@ impl BinaryReader<Cursor<Vec<u8>>> {
       let mut instructions = Vec::new();
       loop {
         let byte = functionBodyReader.readByte()?;
-        // TODO : Verify that a function body ends with the END instruction.
         if byte == 0 {
+          // Verify that a function body ends with the END instruction.
+          instructions
+            .last()
+            .filter(|instruction| **instruction == Instruction::End)
+            .ok_or_else(|| {
+              anyhow!("Function body expression didn't end with the END instruction")
+            })?;
           break;
         }
 

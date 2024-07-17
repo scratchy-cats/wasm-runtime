@@ -2,8 +2,8 @@
 01000000 - WASM Binary Verson
 
 01 - Type section
-07 - Section content byte- ize
-01 - Function signatures count
+0a - Section content byte-size
+02 - Function signatures count
 
   60 - Function Signature starting marker
 
@@ -14,15 +14,25 @@
     01 - Output count
       7f - Number type
 
+	60
+		00
+		00
+
 03 - Function section
-02 - Section content byte-size
-01 - Function count
+03 - Section content byte-size
+02 - Function count
 
   00 - Function signature reference
+	01
+
+08 - Start section
+01 - Section content byte-size
+	
+	01 - function index
 
 0a - Code section
-09 - Section content byte-size
-01 - Function body count
+13 - Section content byte-size
+02 - Function body count
 
   07 - Function code byte-size
   The actual function code as an expression :
@@ -34,7 +44,18 @@
 
     20 - local.get (variable) instruction
       01 - (referencing second input)
-    
+
     6a - i32.add (numeric) instruction
 
     0b - end instruction
+
+	09
+		00
+		41 - const (numeric) instruction
+			02
+		41
+			03
+		10 - call function (control) instruction
+			00 - function index
+		1a - drop (parametric) instruction
+		0b

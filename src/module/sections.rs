@@ -9,6 +9,7 @@ use num_derive::FromPrimitive;
 pub enum SectionId {
   Type = 0x01,
   Function = 0x03,
+	Start = 0x08,
   Code = 0x0a,
 }
 
@@ -19,6 +20,8 @@ pub struct TypeSection {
 pub struct FunctionSection {
   pub functions: Vec<TypeIndex>,
 }
+
+pub struct StartSection {}
 
 pub struct CodeSection {
   pub functionBodies: Vec<FunctionBody>,
